@@ -1,0 +1,49 @@
+{% extends 'app.html' %}
+{% block content %}
+
+<div class="container">
+  <h2>Login form</h2>
+
+  {% with login_msgs = get_flashed_messages(category_filter=["login"]) %}
+  {% if login_msgs %}
+    <div class="alert alert-danger">
+      <ul>
+        {% for msg in login_msgs %}
+          <li>{{ msg }}</li>
+        {% endfor %}
+      </ul>
+    </div>
+  {% endif %}
+  {% endwith %}
+
+  {% with success_msgs = get_flashed_messages(category_filter=["success"]) %}
+  {% if success_msgs %}
+    <div class="alert alert-success">
+      <ul>
+        {% for msg in success_msgs %}
+          <li>{{ msg }}</li>
+        {% endfor %}
+      </ul>
+    </div>
+  {% endif %}
+  {% endwith %}
+
+  <form method="POST">
+    {{ form.hidden_tag() }}
+
+    <div class="form-group">
+      {{ form.email.label }}
+      {{ form.email(class="form-control") }}
+    </div>
+
+    <div class="form-group">
+      {{ form.password.label }}
+      {{ form.password(class="form-control") }}
+    </div>
+
+    {{ form.submit(class="btn btn-dark mt-3") }}
+    <a href="/register" class="btn btn-secondary mt-3">Register</a>
+  </form>
+</div>
+
+{% endblock %}

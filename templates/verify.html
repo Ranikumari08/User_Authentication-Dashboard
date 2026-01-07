@@ -1,0 +1,27 @@
+{% extends 'app.html' %}
+{% block content %}
+
+<div class="container mt-5">
+  <h2>Email Verification</h2>
+
+  {% with messages = get_flashed_messages(category_filter=["otp"]) %}
+  {% if messages %}
+    <div class="alert alert-danger">
+      {% for msg in messages %}
+        <p>{{ msg }}</p>
+      {% endfor %}
+    </div>
+  {% endif %}
+  {% endwith %}
+
+  <form method="POST">
+    <div class="form-group">
+      <label>Enter OTP</label>
+      <input type="text" name="otp" class="form-control" required>
+    </div>
+
+    <button type="submit" class="btn btn-dark mt-3">Verify</button>
+  </form>
+</div>
+
+{% endblock %}
