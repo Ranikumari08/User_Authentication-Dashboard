@@ -2,3 +2,7 @@ flask
 flask-sqlalchemy
 bcrypt
 flask-wtf
+flask-mysql
+flask-mail
+mysql-connector-python
+email_validator

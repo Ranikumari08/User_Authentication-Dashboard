@@ -10,16 +10,16 @@ from random import randint
 app = Flask(__name__) #WSGI application
 app.secret_key = "supersecretkey"
 
-#email verification
+#email verification with SMTP
 app.config["MAIL_SERVER"]='smtp.gmail.com'
 app.config["MAIL_PORT"]=465
-app.config["MAIL_USERNAME"]='your email'
-app.config['MAIL_PASSWORD']='gmail app password'                   
+app.config["MAIL_USERNAME"]='your email if'
+app.config['MAIL_PASSWORD']='your gmail app password'                   
 app.config['MAIL_USE_TLS']=False
 app.config['MAIL_USE_SSL']=True
 mail=Mail(app)
 
-#MYSQL configuration
+#MYSQL db configuration
 app.config['MYSQL_HOST'] = 'localhost'
 app.config['MYSQL_USER'] = 'root'
 app.config['MYSQL_PASSWORD'] = 'mysql password'
@@ -73,14 +73,14 @@ def register():
         cursor.execute("INSERT INTO users (name,email,password, otp, is_verified) VALUES (%s,%s,%s,%s, %s)",
                        (name,email,hashed_password,otp,0)) #insert new row in table
         
-        mysql.connection.commit()  #save the changes permanently in mysql
+        mysql.connection.commit()  #save user data in mysql db
         cursor.close() #close cursor connection
 
         # send OTP email
         msg = Message('Email Verification OTP',
                       sender=app.config['MAIL_USERNAME'],
                       recipients=[email])
-        msg.body = f"Your OTP is {otp}"
+        msg.body = f"Verify your email\n Your OTP is {otp}\n The code will expire after 10 minutes."
         mail.send(msg)
 
         session['verify_email'] = email
@@ -126,11 +126,11 @@ def login():
 @app.route('/dashboard')
 def dashboard():
     if 'user_id' in session:
-        user_id = session['user_id']
+        user_id = session['user_id'] 
 
         cursor = mysql.connection.cursor()
         cursor.execute("SELECT * FROM users where id=%s",(user_id,))
-        user = cursor.fetchone()
+        user = cursor.fetchone() #fetch user id from mysql
         cursor.close()
 
         if user:
@@ -154,13 +154,13 @@ def verify():
         return redirect(url_for('register'))
 
     if request.method == 'POST':
-        user_otp = request.form['otp']
+        user_otp = request.form['otp'] #user entered otp in page
 
         cursor = mysql.connection.cursor()
         cursor.execute("SELECT otp FROM users WHERE email=%s", (email,))
-        row = cursor.fetchone()
+        row = cursor.fetchone()  # original otp generated
 
-        if row and user_otp == row[0]:
+        if row and user_otp == row[0]:  #matching both otps
             cursor.execute("""
                 UPDATE users
                 SET is_verified=1, otp=NULL
