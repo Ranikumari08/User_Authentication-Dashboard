@@ -12,3 +12,23 @@ Send an OTP to the user’s email during signup.
 Complete signup only after OTP verification.
 
 Handle invalid credentials and session management properly.
+------------------------------------------------------------------------------------------
+Flow: 
+    Register → OTP sent → OTP verified → Account activated → Login allowed
+
+File Structure:
+app.py
+ ├── /register  → create user + send OTP
+ ├── /verify    → verify OTP + activate account
+ ├── /login     → block if not verified
+ ├── /logout
+
+/templates
+ ├── register.html
+ ├── login.html
+ ├── verify.html  
+ ├── dashboard.html
+ ├── app.html
+
+
+
