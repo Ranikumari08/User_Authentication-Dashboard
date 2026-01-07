@@ -6,6 +6,7 @@ import bcrypt
 from flask_mysqldb import MySQL
 from flask_mail import Mail,Message
 from random import randint
+import uuid
 
 app = Flask(__name__) #WSGI application
 app.secret_key = "supersecretkey"
@@ -13,8 +14,13 @@ app.secret_key = "supersecretkey"
 #email verification with SMTP
 app.config["MAIL_SERVER"]='smtp.gmail.com'
 app.config["MAIL_PORT"]=465
+<<<<<<< HEAD
 app.config["MAIL_USERNAME"]='your email if'
 app.config['MAIL_PASSWORD']='your gmail app password' #your gmail app password               
+=======
+app.config["MAIL_USERNAME"]='your email id'
+app.config['MAIL_PASSWORD']='your gmail app password'  #your gmail app password           
+>>>>>>> 3e1ca6b (email verification added instead of direct otp verify)
 app.config['MAIL_USE_TLS']=False
 app.config['MAIL_USE_SSL']=True
 mail=Mail(app)
@@ -22,7 +28,7 @@ mail=Mail(app)
 #MYSQL db configuration
 app.config['MYSQL_HOST'] = 'localhost'
 app.config['MYSQL_USER'] = 'root'
-app.config['MYSQL_PASSWORD'] = 'mysql password'
+app.config['MYSQL_PASSWORD'] = 'your mysql password'
 app.config['MYSQL_DB'] = 'userdb'
 app.secret_key = 'your_secret_key_here'  #for using sessions
 
@@ -56,38 +62,56 @@ def index():
     return render_template('index.html')
 
 #register route -> create user + send OTP
-@app.route('/register',methods=['GET','POST'])
+@app.route('/register', methods=['GET', 'POST'])
 def register():
     form = RegisterForm()
     if form.validate_on_submit():
         name = form.name.data
         email = form.email.data
         password = form.password.data
-            #password hashing
-        hashed_password = bcrypt.hashpw(password.encode('utf-8'),bcrypt.gensalt())
-        
-        otp=str(randint(000000,999999))  #generating otp
 
-        #communicate with database using cursor
-        cursor = mysql.connection.cursor()  #create cursor object
-        cursor.execute("INSERT INTO users (name,email,password, otp, is_verified) VALUES (%s,%s,%s,%s, %s)",
-                       (name,email,hashed_password,otp,0)) #insert new row in table
-        
-        mysql.connection.commit()  #save user data in mysql db
-        cursor.close() #close cursor connection
+        # password hashing (FIXED)
+        hashed_password = bcrypt.hashpw(
+            password.encode('utf-8'),
+            bcrypt.gensalt()
+        ).decode('utf-8')
 
-        # send OTP email
-        msg = Message('Email Verification OTP',
-                      sender=app.config['MAIL_USERNAME'],
-                      recipients=[email])
-        msg.body = f"Verify your email\n Your OTP is {otp}\n The code will expire after 10 minutes."
+        otp = str(randint(100000, 999999))
+        verify_token = str(uuid.uuid4())
+
+        cursor = mysql.connection.cursor()
+        cursor.execute("""
+            INSERT INTO users (name, email, password, otp, verify_token, is_verified)
+            VALUES (%s, %s, %s, %s, %s, %s)
+        """, (name, email, hashed_password, otp, verify_token, 0))
+        mysql.connection.commit()
+        cursor.close()
+
+        # SEND VERIFICATION LINK (NOT OTP PAGE)
+        verify_link = url_for('verify_link', token=verify_token, _external=True)
+
+        msg = Message(
+            subject='Verify your email',
+            sender=app.config['MAIL_USERNAME'],
+            recipients=[email]
+        )
+        msg.body = f"""
+Hi {name},
+
+Please click the link below to verify your email:
+
+{verify_link}
+
+After clicking the link, you will be asked to enter OTP.
+"""
+
         mail.send(msg)
 
-        session['verify_email'] = email
-        flash("OTP sent to your email. Verify to complete signup.","otp")
+        flash("Verification link sent to your email.", "success")
+        return redirect(url_for('login'))
 
-        return redirect(url_for('verify'))  #redirect to verify user
-    return render_template('register.html',form=form)
+    return render_template('register.html', form=form)
+
 
 #login route → block if not verified
 @app.route('/login', methods=['GET', 'POST'])
@@ -163,7 +187,7 @@ def verify():
         if row and user_otp == row[0]:  #matching both otps
             cursor.execute("""
                 UPDATE users
-                SET is_verified=1, otp=NULL
+                SET is_verified=1, otp=NULL, verify_token=NULL
                 WHERE email=%s
             """, (email,))
             mysql.connection.commit()
@@ -178,6 +202,46 @@ def verify():
         return redirect(url_for('verify'))
 
     return render_template('verify.html')
+
+@app.route('/verify/<token>')
+def verify_link(token):
+    cursor = mysql.connection.cursor()
+    cursor.execute(
+        "SELECT name, email, otp FROM users WHERE verify_token=%s AND is_verified=0",
+        (token,)
+    )
+    user = cursor.fetchone()
+    cursor.close()
+
+    if not user:
+        flash("Invalid or expired verification link.", "login")
+        return redirect(url_for('login'))
+
+    name, email, otp = user
+
+    # SEND OTP EMAIL HERE 
+    msg = Message(
+        subject='Your OTP for Email Verification',
+        sender=app.config['MAIL_USERNAME'],
+        recipients=[email]
+    )
+    msg.body = f"""
+Hi {name},
+
+Your OTP for email verification is:
+
+{otp}
+
+Please enter this OTP to complete verification.
+"""
+
+    mail.send(msg)
+
+    session['verify_email'] = email
+    flash("OTP sent to your email. Please enter it below.", "otp")
+
+    return redirect(url_for('verify'))
+
 
 if __name__ == "__main__":
     app.run(debug=True)
