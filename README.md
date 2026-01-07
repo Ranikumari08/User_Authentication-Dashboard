@@ -17,18 +17,34 @@ Flow:
     Register → OTP sent → OTP verified → Account activated → Login allowed
 
 File Structure:
-app.py
- ├── /register  → create user + send OTP
- ├── /verify    → verify OTP + activate account
- ├── /login     → block if not verified
- ├── /logout
+User_auth/
+│
+├── app.py                  # Main Flask application
+│
+├── requirements.txt        # Project dependencies
+│
+├── venv/                   # Virtual environment
+│
+├── templates/
+│   ├── app.html             # Base layout (Bootstrap, block content)
+│   ├── index.html           # Home page
+│   ├── register.html        # Signup form
+│   ├── login.html           # Login form
+│   ├── verify.html          # OTP input page
+│   └── dashboard.html       # Logged-in user page
+│
+└── static/   (optional)
+    └── css/                 # Custom CSS
 
-/templates
- ├── register.html
- ├── login.html
- ├── verify.html  
- ├── dashboard.html
- ├── app.html
-
+Database Structure (User table)
+users
+│
+├── id             INT (PK)
+├── name           VARCHAR
+├── email          VARCHAR (UNIQUE)
+├── password       VARCHAR (hashed)
+├── otp            VARCHAR(6)
+├── verify_token   VARCHAR
+├── is_verified    BOOLEAN
 
 
